@@ -22,10 +22,15 @@ let options = {
 	apis: ["swagger.js"],
 };
 let specs = swaggerJsDoc(options);
+let path = require("path");
+let cookie_parser = require("cookie-parser");
 
 app.use(express.json());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
+app.use(cookie_parser());
+app.use(express.static(__dirname + "/public"));
 
 let Employees = require("../database/employees");
 let Clients = require("../database/clients");
@@ -36,6 +41,9 @@ let xl_to_db = require("../services/xl_to_db");
 let pdf = require("../services/pdf");
 let mail = require("../services/mail");
 let toexcel = require("../services/db_to_xl");
+let upload = require("../services/upload");
+let login = require("../services/login");
+let { createToken, validateToken } = require("../jwttoken/logintoken");
 
 app.get("/to_db/:filename", async (req, res) => {
 	let response = await xl_to_db(req.params.filename);
@@ -56,9 +64,9 @@ app.get("/", (req, res) => {
 	res.status(200).json("App is Working");
 });
 
-/** End points for Employees */
+/** Api's for Employees */
 
-app.get("/employees", async (req, res) => {
+app.get("/employees", validateToken, async (req, res) => {
 	try {
 		let response = await Employees.all_employees();
 		res.status(200).json(response);
@@ -124,7 +132,7 @@ app.get("/employees_view", async (req, res) => {
 	}
 });
 
-/** End points for Clients */
+/** Api's for Clients */
 
 app.get("/clients", async (req, res) => {
 	try {
@@ -183,7 +191,7 @@ app.put("/clients/:id", async (req, res) => {
 	}
 });
 
-/** End points for Projects */
+/** Api's for Projects */
 
 app.get("/projects", async (req, res) => {
 	try {
@@ -243,7 +251,7 @@ app.put("/projects/:id", async (req, res) => {
 });
 
 /**  from here test cases and swagger documentation pending  */
-/** End points for Employee_n_Projects */
+/** Api's for Employee_n_Projects */
 
 app.post("/employee_n_projects", async (req, res) => {
 	try {
@@ -265,7 +273,7 @@ app.get("/employee_n_projects", async (req, res) => {
 	}
 });
 
-/** End points for Joins */
+/** Api's for Joins */
 
 app.get("/project_details/:id", async (req, res) => {
 	try {
@@ -287,7 +295,7 @@ app.get("/employee_in_project/:id", async (req, res) => {
 	}
 });
 
-/** End points for Pdf */
+/** Api for Pdf */
 app.get("/teamdetails/:id", async (req, res) => {
 	let response = await pdf(req.params.id);
 	if (response == "no project_id") {
@@ -307,13 +315,13 @@ app.get("/teamdetails/:id", async (req, res) => {
 	}
 });
 
-/** End points for Mail */
+/** Api for Mail */
 app.get("/mail/:id/:p_id", async (req, res) => {
 	let response = await mail(req.params.id, req.params.p_id);
 	res.send(response);
 });
 
-/** End points for Axios */
+/** Api's for Axios */
 app.get("/axios", (req, res) => {
 	axios
 		.get(`http://localhost:3000`)
@@ -325,9 +333,51 @@ app.get("/axios", (req, res) => {
 		});
 });
 
-/** End points for data DB to Excel */
+/** Api for data DB to Excel */
 app.get("/toexcel", async (req, res) => {
 	res.send(await toexcel());
+});
+
+/** Api's for upload */
+app.get("/upload", (req, res) => {
+	res.sendFile(path.join(__dirname + "/public/upload.html"));
+});
+
+app.post("/upload", upload.array("file"), async (req, res) => {
+	return res.json({ status: "OK", uploaded: req.files.length });
+});
+
+/** Api for Login */
+app.get("/loginpage", (req, res) => {
+	res.sendFile(path.join(__dirname + "/public/login.html"));
+});
+
+app.post("/login", async (req, res) => {
+	try {
+		let response = await login(
+			req.body.name,
+			req.body.email,
+			req.body.mobile_number
+		);
+		if (response == 400) {
+			res.status(400).json("Employee not found");
+		} else if (response == 401) {
+			res.status(401).json(
+				"Name and Mobile Number not Matched,Please try again"
+			);
+		} else {
+			let accessToken = createToken(response);
+			console.log(accessToken);
+			res.cookie("logintoken", accessToken, {
+				httpOnly: true,
+				maxAge: 60000,
+			});
+
+			res.status(200).send(`Employee logged in Successfully`);
+		}
+	} catch (err) {
+		res.status(500).json(`error:${err.message}`);
+	}
 });
 
 module.exports = app;
