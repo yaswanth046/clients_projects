@@ -13,6 +13,9 @@ async function all_employees() {
 async function employee_by_id(id) {
 	return await Employees.query().findById(id);
 }
+async function employee_by_email(email) {
+	return await Employees.query().where("email", email);
+}
 
 async function insert_employees(data) {
 	return await Employees.query().insert(data);
@@ -28,6 +31,7 @@ async function update_employees(data, id) {
 
 module.exports = {
 	all_employees,
+	employee_by_email,
 	insert_employees,
 	employee_by_id,
 	delete_employees,
