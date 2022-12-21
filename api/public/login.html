@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Login Page</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+
+	<body>
+		<section class="header">
+			<form action="/login" method="post">
+				<div class="container">
+					<label>Username : </label>
+					<input
+						type="text"
+						placeholder="Enter Username"
+						name="name"
+						required />
+					<label>Email : </label>
+					<input
+						type="email"
+						placeholder="Enter Email"
+						name="email"
+						required />
+					<label>Mobile Number : </label>
+					<input
+						type="mobilenumber"
+						name="mobile_number"
+						placeholder="Mobile Number"
+						maxlength="10"
+						required />
+
+					<button type="submit">Submit</button>
+				</div>
+			</form>
+		</section>
+	</body>
+</html>
